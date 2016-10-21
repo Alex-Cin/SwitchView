@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="SwitchView">
+        <!--中间的小滑块的 左边的颜色，开关处于点亮的状态的颜色-->
+        <attr name="sv_lightColor" format="color" />
+        <!--中间的小滑块的 右边的颜色，开关处于关闭的状态的颜色-->
+        <attr name="sv_darkColor" format="color" />
+        <!--中间的消化快的颜色-->
+        <attr name="sv_circleSlideColor" format="color" />
+        <!--中间的小滑块占 开关控件的 高度比例-->
+        <attr name="sv_circleSlideScale" format="float" />
+        <!--当前开关的状态，处于打开-->
+        <attr name="sv_isOpened" format="boolean" />
+        <attr name="sv_openDuration" format="integer" />
+        <attr name="sv_closeDuration" format="integer" />
+    </declare-styleable>
+</resources>

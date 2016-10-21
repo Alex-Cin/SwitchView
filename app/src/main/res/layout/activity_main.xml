@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context="com.alex.switchview.demo.MainActivity">
+
+
+    <org.alex.switchview.SwitchView
+        android:layout_width="300dp"
+        android:layout_height="120dp"
+        android:layout_centerHorizontal="true"
+        app:sv_circleSlideScale="0.8"
+        app:sv_isOpened="true"/>
+
+    <org.alex.switchview.SwitchView
+        android:layout_width="100dp"
+        android:layout_height="40dp"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"
+        android:background="#CCCCCC"
+        app:sv_circleSlideScale="0.8"
+        app:sv_isOpened="true"/>
+
+    <org.alex.switchview.SwitchView
+        android:layout_width="100dp"
+        android:layout_height="40dp"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"
+        app:sv_circleSlideScale="0.8"
+        app:sv_closeDuration="100"
+        app:sv_openDuration="100"
+        app:sv_isOpened="false"/>
+</LinearLayout>
