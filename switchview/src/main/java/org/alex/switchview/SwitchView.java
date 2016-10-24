@@ -4,6 +4,7 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
@@ -75,11 +76,8 @@ public class SwitchView extends View implements View.OnClickListener {
      * 小滑块 滑动的 距离
      */
     private float circleSlideRunLength;
-    /**
-     * true = 将要打开
-     * false = 将要关闭
-     */
-    private boolean is2Open;
+
+    private int swStatus;
 
     public SwitchView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -97,7 +95,7 @@ public class SwitchView extends View implements View.OnClickListener {
         isOpened = typedArray.getBoolean(R.styleable.SwitchView_sv_isOpened, false);
         typedArray.recycle();
         progress = isOpened ? 1F : 0F;
-
+        swStatus = SwStatus.isNone;
         isCanVisibleDrawing = false;
         setLayerType(LAYER_TYPE_SOFTWARE, null);
         paint = new Paint();
@@ -133,13 +131,12 @@ public class SwitchView extends View implements View.OnClickListener {
         @Override
         public void onAnimationUpdate(ValueAnimator animation) {
             progress = (float) animation.getAnimatedValue();
-            invalidate();
             if ("openAnimator".equals(tag)) {
-
-
+                swStatus = progress > 0.99F ? SwStatus.isNone : SwStatus.is2Open;
             } else if ("closeAnimator".equals(tag)) {
-
+                swStatus = progress < 0.01F ? SwStatus.isNone : SwStatus.is2Close;
             }
+            invalidate();
             LogUtil.e(tag + " = " + progress);
         }
     }
@@ -168,15 +165,51 @@ public class SwitchView extends View implements View.OnClickListener {
     }
 
     private void calcCircleSlidePath() {
-        //progress
         circleSlidePath.reset();
+        if (swStatus == SwStatus.is2Open) {
+            slowly4Open();
+        } else if (swStatus == SwStatus.is2Close) {
+            slowly4Close();
+        } else {
+            circleSlideRectF.left = circleSlideLeft + circleSlideOutGap + progress * circleSlideRunLength;
+            circleSlideRectF.right = circleSlideRight - circleSlideOutGap + progress * circleSlideRunLength;
+            circleSlidePath.arcTo(circleSlideRectF, 90, 180);
+            circleSlideRectF.left = circleSlideLeft + circleSlideOutGap + progress * circleSlideRunLength;
+            circleSlideRectF.right = circleSlideRight - circleSlideOutGap + progress * circleSlideRunLength;
+            circleSlidePath.arcTo(circleSlideRectF, 270, 180);
+        }
+        circleSlidePath.close();
+    }
+
+    private void slowly4Open() {
         circleSlideRectF.left = circleSlideLeft + circleSlideOutGap + progress * circleSlideRunLength;
         circleSlideRectF.right = circleSlideRight - circleSlideOutGap + progress * circleSlideRunLength;
         circleSlidePath.arcTo(circleSlideRectF, 90, 180);
+        if (progress < 0.8) {
+            circleSlideRectF.right = circleSlideRight - circleSlideOutGap + (progress + 0.2F) * circleSlideRunLength;
+        } else if ((progress >= 0.8) && (progress < 0.99)) {
+            circleSlideRectF.right = circleSlideRight - circleSlideOutGap + (progress + (1 - progress)) * circleSlideRunLength;
+        } else {
+            circleSlideRectF.left = circleSlideLeft + circleSlideOutGap + progress * circleSlideRunLength;
+            circleSlideRectF.right = circleSlideRight - circleSlideOutGap + progress * circleSlideRunLength;
+        }
+        circleSlidePath.arcTo(circleSlideRectF, -90, 180);
+    }
+
+    private void slowly4Close() {
         circleSlideRectF.left = circleSlideLeft + circleSlideOutGap + progress * circleSlideRunLength;
         circleSlideRectF.right = circleSlideRight - circleSlideOutGap + progress * circleSlideRunLength;
-        circleSlidePath.arcTo(circleSlideRectF, 270, 180);
-        circleSlidePath.close();
+        circleSlidePath.arcTo(circleSlideRectF, -90, 180);
+
+        if (progress > 0.2) {
+            circleSlideRectF.left = circleSlideLeft + circleSlideOutGap + (progress - 0.2F) * circleSlideRunLength;
+        } else if ((progress <= 0.2) && (progress > 0.01)) {
+            circleSlideRectF.left = circleSlideLeft + circleSlideOutGap + (progress * 0.2F) * circleSlideRunLength;
+        } else {
+            circleSlideRectF.left = circleSlideLeft + circleSlideOutGap + progress * circleSlideRunLength;
+            circleSlideRectF.right = circleSlideRight - circleSlideOutGap + progress * circleSlideRunLength;
+        }
+        circleSlidePath.arcTo(circleSlideRectF, 90, 180);
     }
 
     @Override
@@ -268,12 +301,93 @@ public class SwitchView extends View implements View.OnClickListener {
         }
         LogUtil.e("isOpened = " + isOpened);
         if (isOpened) {
-            is2Open = false;
+            swStatus = SwStatus.is2Close;
             closeAnimator.start();
         } else {
-            is2Open = true;
+            swStatus = SwStatus.is2Open;
             openAnimator.start();
         }
         isOpened = !isOpened;
+    }
+
+    /**
+     * 开关 打开的 颜色
+     */
+    public SwitchView lightColor(String lightColor) {
+        return lightColor(Color.parseColor(lightColor));
+    }
+
+    /**
+     * 开关 打开的 颜色
+     */
+    public SwitchView lightColor(int lightColor) {
+        this.lightColor = lightColor;
+        invalidate();
+        return this;
+    }
+
+    /**
+     * 开关 关闭的 颜色
+     */
+    public SwitchView darkColor(String darkColor) {
+        return darkColor(Color.parseColor(darkColor));
+    }
+
+    /**
+     * 开关 关闭的 颜色
+     */
+    public SwitchView darkColor(int darkColor) {
+        this.darkColor = darkColor;
+        invalidate();
+        return this;
+    }
+
+    /**
+     * 开关 关闭的 周期
+     */
+    public SwitchView closeDuration(int closeDuration) {
+        this.closeDuration = closeDuration;
+        return this;
+    }
+
+    /**
+     * 开关 打开的 周期
+     */
+    public SwitchView openDuration(int openDuration) {
+        this.openDuration = openDuration;
+        return this;
+    }
+
+    /**
+     * 打开的状态
+     */
+    public SwitchView isOpened(boolean isOpened) {
+        this.isOpened = isOpened;
+        invalidate();
+        return this;
+    }
+
+    /**
+     * 中间的 小滑块 占据 外面跑道的 高度比
+     */
+    public SwitchView circleSlideScale(float circleSlideScale) {
+        this.circleSlideScale = circleSlideScale;
+        invalidate();
+        return this;
+    }
+
+    private final class SwStatus {
+        /**
+         * 初始状态
+         */
+        private final static int isNone = 0;
+        /**
+         * 初始状态
+         */
+        private final static int is2Open = 1;
+        /**
+         * 初始状态
+         */
+        private final static int is2Close = 2;
     }
 }
