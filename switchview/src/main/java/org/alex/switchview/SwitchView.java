@@ -1,6 +1,8 @@
 package org.alex.switchview;
 
+import android.animation.Animator;
 import android.animation.ValueAnimator;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
@@ -8,11 +10,14 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 
 import org.alex.util.LogUtil;
+
 
 /**
  * 作者：Alex
@@ -78,6 +83,7 @@ public class SwitchView extends View implements View.OnClickListener {
     private float circleSlideRunLength;
 
     private int swStatus;
+    private OnChangeListener onChangeListener;
 
     public SwitchView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -105,15 +111,35 @@ public class SwitchView extends View implements View.OnClickListener {
         /*关联动画*/
         openAnimator = ValueAnimator.ofFloat(0f, 1.0f);
         closeAnimator = ValueAnimator.ofFloat(1.0f, 0.0f);
-
+        MySimpleAnimatorListener simpleAnimatorListener = new MySimpleAnimatorListener();
         closeAnimator.setDuration(closeDuration);
         closeAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
         closeAnimator.addUpdateListener(new MyAnimatorUpdateListener("closeAnimator"));
+        closeAnimator.addListener(simpleAnimatorListener);
 
         openAnimator.setDuration(openDuration);
         openAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
         openAnimator.addUpdateListener(new MyAnimatorUpdateListener("openAnimator"));
+        openAnimator.addListener(simpleAnimatorListener);
         setOnClickListener(this);
+    }
+
+    private final class MySimpleAnimatorListener extends SimpleAnimatorListener {
+        @Override
+        public void onAnimationCancel(Animator animation) {
+            super.onAnimationCancel(animation);
+            swStatus = SwStatus.isNone;
+            LogUtil.e("isOpen = " + isOpened);
+        }
+
+        @Override
+        public void onAnimationEnd(Animator animation) {
+            super.onAnimationEnd(animation);
+            LogUtil.e("isOpen = " + isOpened);
+            if (onChangeListener != null) {
+                onChangeListener.onChange(SwitchView.this, isOpened);
+            }
+        }
     }
 
     private final class MyAnimatorUpdateListener implements ValueAnimator.AnimatorUpdateListener {
@@ -132,12 +158,21 @@ public class SwitchView extends View implements View.OnClickListener {
         public void onAnimationUpdate(ValueAnimator animation) {
             progress = (float) animation.getAnimatedValue();
             if ("openAnimator".equals(tag)) {
-                swStatus = progress > 0.99F ? SwStatus.isNone : SwStatus.is2Open;
+                if (progress > 0.99F) {
+                    swStatus = SwStatus.isNone;
+                    isOpened = true;
+                } else {
+                    swStatus = SwStatus.is2Open;
+                }
             } else if ("closeAnimator".equals(tag)) {
-                swStatus = progress < 0.01F ? SwStatus.isNone : SwStatus.is2Close;
+                if (progress < 0.01F) {
+                    swStatus = SwStatus.isNone;
+                    isOpened = false;
+                } else {
+                    swStatus = SwStatus.is2Close;
+                }
             }
             invalidate();
-            LogUtil.e(tag + " = " + progress);
         }
     }
 
@@ -255,8 +290,6 @@ public class SwitchView extends View implements View.OnClickListener {
         circleSlideRectF.bottom = circleSlideBottom - circleSlideOutGap;
 
         circleSlideRunLength = width - circleSlideOutGap * 2 - (circleSlideRectF.right - circleSlideRectF.left);
-        LogUtil.e("width = " + width + " height = " + height);
-        LogUtil.e("circleSlideRectF left = " + circleSlideRectF.left + " top = " + circleSlideRectF.top + " right = " + circleSlideRectF.right + " bottom = " + circleSlideRectF.bottom);
     }
 
     @Override
@@ -299,7 +332,6 @@ public class SwitchView extends View implements View.OnClickListener {
         if (closeAnimator.isRunning() || openAnimator.isRunning()) {
             return;
         }
-        LogUtil.e("isOpened = " + isOpened);
         if (isOpened) {
             swStatus = SwStatus.is2Close;
             closeAnimator.start();
@@ -307,7 +339,6 @@ public class SwitchView extends View implements View.OnClickListener {
             swStatus = SwStatus.is2Open;
             openAnimator.start();
         }
-        isOpened = !isOpened;
     }
 
     /**
@@ -375,6 +406,88 @@ public class SwitchView extends View implements View.OnClickListener {
         invalidate();
         return this;
     }
+
+    public boolean isOpened() {
+        return isOpened;
+    }
+
+    public SwitchView open() {
+        cancelAnim();
+        isOpened = true;
+        progress = 1.0F;
+        if (onChangeListener != null) {
+            onChangeListener.onChange(this, true);
+        }
+        invalidate();
+        return this;
+    }
+
+    public SwitchView close() {
+        cancelAnim();
+        isOpened = false;
+        progress = 0.0F;
+        if (onChangeListener != null) {
+            onChangeListener.onChange(this, false);
+        }
+        invalidate();
+        return this;
+    }
+
+    private void cancelAnim() {
+        if (openAnimator != null) {
+            openAnimator.cancel();
+        }
+        if (closeAnimator != null) {
+            closeAnimator.cancel();
+        }
+    }
+
+    public SwitchView onChangeListener(OnChangeListener onChangeListener) {
+        this.onChangeListener = onChangeListener;
+        return this;
+    }
+
+    @Override
+    public Parcelable onSaveInstanceState() {
+        Parcelable superState = super.onSaveInstanceState();
+        SavedState ss = new SavedState(superState);
+        ss.isOpened = isOpened;
+        return ss;
+    }
+
+    @Override
+    public void onRestoreInstanceState(Parcelable state) {
+        SavedState savedState = (SavedState) state;
+        super.onRestoreInstanceState(savedState.getSuperState());
+        this.isOpened = savedState.isOpened;
+        this.swStatus = SwStatus.isNone;
+        invalidate();
+    }
+
+    @SuppressLint("ParcelCreator")
+    static final class SavedState extends BaseSavedState {
+        private boolean isOpened;
+
+        SavedState(Parcelable superState) {
+            super(superState);
+        }
+
+        private SavedState(Parcel in) {
+            super(in);
+            isOpened = 1 == in.readInt();
+        }
+
+        @Override
+        public void writeToParcel(Parcel out, int flags) {
+            super.writeToParcel(out, flags);
+            out.writeInt(isOpened ? 1 : 0);
+        }
+    }
+
+    public interface OnChangeListener {
+        void onChange(SwitchView switchView, boolean isOpened);
+    }
+
 
     private final class SwStatus {
         /**

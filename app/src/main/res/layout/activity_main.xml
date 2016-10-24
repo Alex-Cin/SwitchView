@@ -15,10 +15,12 @@
 
 
     <org.alex.switchview.SwitchView
+        android:id="@+id/sw"
         android:layout_width="300dp"
         android:layout_height="120dp"
         android:layout_centerHorizontal="true"
         app:sv_circleSlideScale="0.8"
+        app:sv_closeDuration="1000"
         app:sv_isOpened="true"
         app:sv_openDuration="1000"/>
 
@@ -39,7 +41,13 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="16dp"
         app:sv_circleSlideScale="0.8"
-        app:sv_closeDuration="100"
+        app:sv_closeDuration="200"
         app:sv_isOpened="false"
-        app:sv_openDuration="100"/>
+        app:sv_openDuration="200"/>
+
+    <Button
+        android:id="@+id/bt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="开关"/>
 </LinearLayout>
